@@ -1,5 +1,8 @@
 import unicodedata
 import dateutil.parser
+from html import unescape
+
+
 
 ## Translation tables ##
 

@@ -1,5 +1,6 @@
 import sys
 import time
+import csv
 import twitter
 import config
 import textutils as tu
@@ -30,7 +31,7 @@ news_sources = [
 def gettweets(sname):
     rawtweets = []
     firstbatch = True
-    for _ in range(1):
+    for _ in range(4):
         if firstbatch:
             res = twitter_api.statuses.user_timeline(
                 count=200,
@@ -57,12 +58,13 @@ def parsetweets(rawtweets):
     parsedtweets = []
     for tweet in rawtweets:
         tweetid = int(tweet['id'])
-        sname = tweet['user']['screen_name'], 
-        text = tweet['text']
+        screen_name = tweet['user']['screen_name'] 
         date = tu.normdatestring(tweet['created_at'])
+        text = tweet['text']
         text = tu.asciichars(text)
-        text = tu.normspace(text).lower()
-        parsedtweets.append((tweetid, sname, text, date))
+        text = tu.normspace(text)
+        text = tu.unescape(text)
+        parsedtweets.append((tweetid, screen_name, text, date))
     return parsedtweets
 
 
@@ -73,11 +75,13 @@ def main():
     alltwts = []
     for sname in news_sources:
         print('Getting tweets for', sname)
-        alltwts.extend(gettweets(sname))
+        alltwts.extend(parsetweets(gettweets(sname)))
         print('Done')
         print('Current count:', len(alltwts), 'tweets')
     print('Writing to file')
-    util.save_csv('data/tweets-current.csv', alltwts)
+    with open('tweets.csv', 'w') as f:
+        writer = csv.writer(f)
+        writer.writerows(alltwts)
     print('Done')
     return 0
 
