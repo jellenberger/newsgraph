@@ -1,6 +1,6 @@
 import sys
 import time
-import csv
+import sqlite3
 import twitter
 import config
 import textutils as tu
@@ -39,7 +39,9 @@ def gettweets(sname):
                 include_rts=False
             )
             firstbatch = False
-        else:    
+        else:
+            print('Pausing 5 seconds.')
+            time.sleep(5)
             res = twitter_api.statuses.user_timeline(
                 count=200,
                 screen_name=sname,
@@ -48,8 +50,6 @@ def gettweets(sname):
             )
         maxid = int(res[-1]['id']) - 1
         rawtweets.extend(res)
-        print('Pausing 5 seconds.')
-        time.sleep(5)
     return rawtweets
 
 
@@ -57,15 +57,33 @@ def gettweets(sname):
 def parsetweets(rawtweets):
     parsedtweets = []
     for tweet in rawtweets:
-        tweetid = int(tweet['id'])
-        screen_name = tweet['user']['screen_name'] 
-        date = tu.normdatestring(tweet['created_at'])
-        text = tweet['text']
-        text = tu.asciichars(text)
-        text = tu.normspace(text)
-        text = tu.unescape(text)
-        parsedtweets.append((tweetid, screen_name, text, date))
+        twtid = int(tweet['id'])
+        sname = tweet['user']['screen_name'] 
+        twttime = tu.normdatestring(tweet['created_at'])
+        twttext = tweet['text']
+        twttext = tu.asciichars(twttext)
+        twttext = tu.normspace(twttext)
+        twttext = tu.unescape(twttext)
+        parsedtweets.append((twtid, sname, twttime, twttext))
     return parsedtweets
+
+
+def savetweets(parsedtweets):
+    conn = sqlite3.connect('data/pisgahdata.db')
+    with conn:
+        c = conn.cursor()
+        for tweet in parsedtweets:
+            try:
+                c.execute(
+                    '''
+                    INSERT INTO tweets (twtid, sname, twttime, twttext) 
+                    VALUES (?, ?, ?, ?)
+                    ''',
+                    tweet
+                )
+            except sqlite3.IntegrityError:
+                print('Tweet exists in database, skipping')
+    conn.close()
 
 
 
@@ -75,14 +93,10 @@ def main():
     alltwts = []
     for sname in news_sources:
         print('Getting tweets for', sname)
-        alltwts.extend(parsetweets(gettweets(sname)))
+        twts = parsetweets(gettweets(sname))
+        print('Saving tweets')
+        savetweets(twts)
         print('Done')
-        print('Current count:', len(alltwts), 'tweets')
-    print('Writing to file')
-    with open('tweets.csv', 'w') as f:
-        writer = csv.writer(f)
-        writer.writerows(alltwts)
-    print('Done')
     return 0
 
 
