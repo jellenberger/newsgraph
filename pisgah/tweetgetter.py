@@ -31,25 +31,32 @@ news_sources = [
 def gettweets(sname):
     rawtweets = []
     firstbatch = True
-    for _ in range(4):
+    for i in range(20):
+        print('Getting batch', i)
         if firstbatch:
             res = twitter_api.statuses.user_timeline(
                 count=200,
                 screen_name=sname,
+                exclude_replies=True,
                 include_rts=False
             )
             firstbatch = False
         else:
-            print('Pausing 5 seconds.')
             time.sleep(5)
             res = twitter_api.statuses.user_timeline(
                 count=200,
                 screen_name=sname,
+                exclude_replies=True,
                 include_rts=False,
                 max_id=maxid
             )
-        maxid = int(res[-1]['id']) - 1
-        rawtweets.extend(res)
+        try:
+            maxid = int(res[-1]['id']) - 1
+        except IndexError as e:
+            print('Empty response received. Ending batch retrieval.')
+            break
+        else:
+            rawtweets.extend(res)            
     return rawtweets
 
 
@@ -57,14 +64,18 @@ def gettweets(sname):
 def parsetweets(rawtweets):
     parsedtweets = []
     for tweet in rawtweets:
-        twtid = int(tweet['id'])
-        sname = tweet['user']['screen_name'] 
-        twttime = tu.normdatestring(tweet['created_at'])
-        twttext = tweet['text']
-        twttext = tu.asciichars(twttext)
-        twttext = tu.normspace(twttext)
-        twttext = tu.unescape(twttext)
-        parsedtweets.append((twtid, sname, twttime, twttext))
+        try:
+            twtid = int(tweet['id'])
+            sname = tweet['user']['screen_name'] 
+            twttime = tu.normdatestring(tweet['created_at'])
+            twttext = tweet['text']
+        except Exception as e:
+            print('parsetweets() response parsing error:', e)
+        else:
+            twttext = tu.asciichars(twttext)
+            twttext = tu.normspace(twttext)
+            twttext = tu.unescape(twttext)
+            parsedtweets.append((twtid, sname, twttime, twttext))
     return parsedtweets
 
 
@@ -81,8 +92,8 @@ def savetweets(parsedtweets):
                     ''',
                     tweet
                 )
-            except sqlite3.IntegrityError:
-                print('Tweet exists in database, skipping')
+            except sqlite3.IntegrityError:  # error caused if twtid exists
+                continue
     conn.close()
 
 
@@ -94,7 +105,7 @@ def main():
     for sname in news_sources:
         print('Getting tweets for', sname)
         twts = parsetweets(gettweets(sname))
-        print('Saving tweets')
+        print('Saving tweets for', sname)
         savetweets(twts)
         print('Done')
     return 0
