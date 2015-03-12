@@ -19,7 +19,7 @@ twitter_api = twitter.Twitter(auth=twitter_auth)
 
 # list of news source screen names
 news_sources = [
-    'nytimes', 'washingtonpost', 'cnn',
+    'nytimes', 'washingtonpost', 'CNN',
     'ABC', 'CBSNews', 'NBCNews',
     'WSJ', 'Reuters', 'FoxNews', 'AP'
 ]
@@ -29,9 +29,10 @@ news_sources = [
 
 # get list of tweets from screen name
 def gettweets(sname):
+
     rawtweets = []
     firstbatch = True
-    for i in range(20):
+    for i in range(20):  # break will probably occur before i == 20
         print('Getting batch', i)
         if firstbatch:
             res = twitter_api.statuses.user_timeline(
@@ -53,6 +54,8 @@ def gettweets(sname):
         try:
             maxid = int(res[-1]['id']) - 1
         except IndexError as e:
+            # caused by an empty Twitter response (no more tweets available);
+            # break out of loop
             print('Empty response received. Ending batch retrieval.')
             break
         else:
@@ -80,11 +83,11 @@ def parsetweets(rawtweets):
 
 
 def savetweets(parsedtweets):
-    conn = sqlite3.connect('data/pisgahdata.db')
+    conn = sqlite3.connect(config.dbfile)
     with conn:
         c = conn.cursor()
         for tweet in parsedtweets:
-            try:
+            try:  #TODO change this to insert or ignore?
                 c.execute(
                     '''
                     INSERT INTO tweets (twtid, sname, twttime, twttext) 
