@@ -1,12 +1,15 @@
 import sys
 import re
+import uuid
 import sqlite3
 from textblob import TextBlob
 from fuzzywuzzy import fuzz
 import config
 import textutils as tu
-import random # temp?
-from pprint import pprint #temp?
+
+# dev imports
+import random
+from pprint import pprint
 
 
 
@@ -53,6 +56,22 @@ def getsimilar(reftwtblob, twtbloblist):
     return simtwts
 
 
+def savetweetgroup(simtwts):
+    conn = sqlite3.connect(config.dbfile)
+    with conn:
+        c = conn.cursor()
+        group_id = uuid.uuid4().hex
+        for tweet in simtwts:
+            c.execute(
+                '''
+                INSERT INTO tweetgroups (group_id, tweet_id) 
+                VALUES (?, ?)
+                ''',
+                (group_id, tweet[0])
+            )
+    conn.close()
+
+
 
 ## Main ##
 
@@ -62,15 +81,18 @@ def main():
     twtbloblist = maketweetbloblist(retrievetweets())
     print('Analyzing tweets.\n')
     tweetnum = 1
-    percentunits = int(len(twtbloblist) / 100)
+    tweetcount = len(twtbloblist)
+    updateinterval = int(tweetcount / 100)
     while twtbloblist:
-        if tweetnum % percentunits == 0:
-            print(tweetnum * 100 / len(twtbloblist), 'percent complete.\n')
+        if tweetnum % updateinterval == 0:
+            print(round(tweetnum * 100 / tweetcount), 'percent processed.\n')
         reftwtblob = twtbloblist.pop()
         simtwts = getsimilar(reftwtblob, twtbloblist)
         if(len(simtwts) > 2):
             pprint(simtwts)
             print('\n')
+            savetweetgroup(simtwts)
+            print('Tweet group saved.\n')
         tweetnum += 1
 
 
