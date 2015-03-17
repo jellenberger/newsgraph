@@ -14,6 +14,9 @@ from pprint import pprint
 
 
 def cleantweettext(twttext):
+    twttext = tu.asciichars(twttext)
+    twttext = tu.normspace(twttext)
+    twttext = tu.unescape(twttext)
     twttext = tu.rmurls(twttext)
     twttext = tu.puncspace(twttext)
     twttext = twttext.replace('#', '')
@@ -77,15 +80,12 @@ def savetweetgroup(simtwts):
 
 def main():
     print('\n')
-    print('Retrieving tweets from database.\n')
+    print('Retrieving and processing tweets from database...\n')
     twtbloblist = maketweetbloblist(retrievetweets())
-    print('Analyzing tweets.\n')
+    print('Processing tweets...\n')
     tweetnum = 1
     tweetcount = len(twtbloblist)
-    updateinterval = int(tweetcount / 100)
     while twtbloblist:
-        if tweetnum % updateinterval == 0:
-            print(round(tweetnum * 100 / tweetcount), 'percent processed.\n')
         reftwtblob = twtbloblist.pop()
         simtwts = getsimilar(reftwtblob, twtbloblist)
         if(len(simtwts) > 2):
@@ -93,6 +93,7 @@ def main():
             print('\n')
             savetweetgroup(simtwts)
             print('Tweet group saved.\n')
+            print(round(tweetnum * 100 / tweetcount), 'percent processed.\n')
         tweetnum += 1
 
 
