@@ -2,7 +2,6 @@ import sys
 import re
 import uuid
 import sqlite3
-from textblob import TextBlob
 from fuzzywuzzy import fuzz
 import config
 import textutils as tu
@@ -13,21 +12,23 @@ from pprint import pprint
 
 
 
-def cleantweettext(twttext):
-    twttext = tu.asciichars(twttext)
-    twttext = tu.normspace(twttext)
-    twttext = tu.unescape(twttext)
-    twttext = tu.rmurls(twttext)
-    twttext = tu.puncspace(twttext)
-    twttext = twttext.replace('#', '')
-    twttext = twttext.replace('@', '')
-    twttext = tu.singlespaces(twttext).strip()
+def clean_tweettext(twttext):
+    twttext = tu.asciichars(twttext) # ascii chars only
+    twttext = tu.normspace(twttext) # whitespace chars to spaces
+    twttext = tu.unescape(twttext) # fix url encoded text
+    twttext = tu.rmurls(twttext) # remove urls
+    twttext = twttext.replace('-', '') # - to space
+    twttext = twttext.replace('_', '') # _ to space
+    twttext = twttext.replace('#', '') # no #
+    twttext = twttext.replace('@', '') # no @
+    twttext = re.sub(': *$', '', twttext) # no colon + space* at end
+    twttext = re.sub('', '', twttext).strip() # single spaces only
     return twttext
 
 
-def retrievetweets():
+def retrieve_tweets():
     with sqlite3.connect(config.dbfile) as conn:
-        tweetlist = []
+        twtlist = []
         cursor = conn.cursor()
         cursor.execute(
             '''
@@ -35,42 +36,42 @@ def retrievetweets():
             '''
         )
         for row in cursor.fetchall():
-            tweetlist.append(row)
-        return tweetlist
+            twtlist.append(row)
+        return twtlist
 
 
-def maketweetbloblist(twtlist):
-    twtbloblist = []
+def process_tweetlist(twtlist):
+    outlist = []
     for twt in twtlist:
-        twttextblob = TextBlob(cleantweettext(twt[3]))
+        twttext = clean_tweettext(twt[3])
         twtdatetime = tu.stringtodate(twt[2])
-        twtbloblist.append( (twt[0], twt[1], twtdatetime, twttextblob) )
-    return twtbloblist
+        outlist.append( (twt[0], twt[1], twtdatetime, twttext) )
+    return outlist
 
 
-def getsimilar(reftwtblob, twtbloblist):
-    simtwts = [reftwtblob]
-    for twtblob in twtbloblist:
-        if  ((reftwtblob[2] - twtblob[2]).total_seconds() <= 64800 and 
-             reftwtblob[1] != twtblob[1]):
-            ratio = fuzz.token_sort_ratio(reftwtblob[3].string, twtblob[3].string)
+def find_similartweets(reftwt, twtlist):
+    simtwts = [reftwt]
+    for twt in twtlist:
+        if  ((reftwt[2] - twt[2]).total_seconds() <= 64800 and 
+             reftwt[1] != twt[1]):
+            ratio = fuzz.token_sort_ratio(reftwt[3], twt[3])
             if ratio >= 75 and ratio < 90:
-                simtwts.append(twtblob)
+                simtwts.append(twt)
     return simtwts
 
 
-def savetweetgroup(simtwts):
+def save_tweetgroup(simtwts):
     conn = sqlite3.connect(config.dbfile)
     with conn:
         c = conn.cursor()
-        group_id = uuid.uuid4().hex
-        for tweet in simtwts:
+        group_id = tu.baseencode(uuid.uuid4().int)
+        for twt in simtwts:
             c.execute(
                 '''
-                INSERT INTO tweetgroups (group_id, tweet_id) 
-                VALUES (?, ?)
+                INSERT INTO tweetgroups (group_id, tweet_id, screen_name, tweet_time, cleantext) 
+                VALUES (?, ?, ?, ?, ?)
                 ''',
-                (group_id, tweet[0])
+                (group_id, twt[0], twt[1], twt[2].strftime('%Y-%m-%d %H:%M:%S'), twt[3])
             )
     conn.close()
 
@@ -80,22 +81,23 @@ def savetweetgroup(simtwts):
 
 def main():
     print('\n')
-    print('Retrieving and processing tweets from database...\n')
-    twtbloblist = maketweetbloblist(retrievetweets())
-    print('Processing tweets...\n')
-    tweetnum = 1
-    tweetcount = len(twtbloblist)
-    while twtbloblist:
-        reftwtblob = twtbloblist.pop()
-        simtwts = getsimilar(reftwtblob, twtbloblist)
+    print('Retrieving tweets from database.\n')
+    twtlist = retrieve_tweets()
+    print('Processing tweets.\n')
+    twtlist = process_tweetlist(twtlist)
+    print('Finding similar tweet groups.\n')
+    twtnum = 1
+    twtcount = len(twtlist)
+    while twtlist:
+        reftwt = twtlist.pop()
+        simtwts = find_similartweets(reftwt, twtlist)
         if(len(simtwts) > 2):
             pprint(simtwts)
             print('\n')
-            savetweetgroup(simtwts)
+            save_tweetgroup(simtwts)
             print('Tweet group saved.\n')
-            print(round(tweetnum * 100 / tweetcount), 'percent processed.\n')
-        tweetnum += 1
-
+            print(round(twtnum * 100 / twtcount), 'percent processed.\n')
+        twtnum += 1
 
 
 if __name__ == "__main__":
