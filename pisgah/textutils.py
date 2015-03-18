@@ -7,7 +7,15 @@ from html import unescape
 
 
 
-## Translation tables ##
+## Constants ##
+
+# for base encoding
+BASE_LIST = string.digits + string.ascii_letters
+BASE_DICT = dict((c, i) for i, c in enumerate(BASE_LIST))
+
+
+
+## Translation Tables ##
 
 # whitespace to spaces
 space_transtable = {
@@ -33,6 +41,7 @@ commonpunc_transtable = {
 rmpunc_transtable = dict.fromkeys(i for i in range(sys.maxunicode)
                                   if unicodedata.category(chr(i)).startswith('P'))
 rmpunc_transtable.update(dict.fromkeys(map(ord, string.punctuation)))
+
 
 
 ## String simplification and normalization functions ##
@@ -77,14 +86,26 @@ def rmpunc(s):
     return s
 
 
-# replaces space-like punctuation with a space
-def puncspace(s):
-    s = s.replace('-', ' ')
-    s = s.replace('_', ' ')
-    return s
-
-
 # remove url from string
 def rmurls(s):
     s = re.sub('(([\w-]+://?|www[.])[^\s()<>]+)', '', s)
     return s
+
+
+# encode to base62 (or other base) string
+def baseencode(inputnum, base=BASE_LIST):
+    baselen = len(base)
+    outstr = ''
+    while inputnum != 0:
+        outstr = base[inputnum % baselen] + outstr
+        inputnum //= baselen
+    return outstr
+
+
+# decode base62 (or other base) string to int
+def basedecode(s, reverse_base=BASE_DICT):
+    length = len(reverse_base)
+    outputnum = 0
+    for i, c in enumerate(s[::-1]):
+        outputnum += (length ** i) * reverse_base[c]
+    return outputnum
