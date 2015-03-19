@@ -1,8 +1,8 @@
 import sys
 import sqlite3
-import textblob
+import nltk
 import config
-from textblob import TextBlob
+
 
 # dev imports
 import random
@@ -41,12 +41,12 @@ def get_tweetgroup(groupid):
 
 ## NLP functions ##
 
-def blobify_group(group):
-    blobtwts = []
+def tag_tweetgroup(group):
+    taggedtwts = []
     for twt in group:
-        txtblob = TextBlob(twt[4])
-        blobtwts.append( (twt[0], twt[1], twt[2], twt[3], txtblob) )
-    return blobtwts    
+        taggedtxt = nltk.pos_tag(nltk.word_tokenize(twt[4]))
+        taggedtwts.append( (twt[0], twt[1], twt[2], twt[3], taggedtxt) )
+    return taggedtwts
 
 
 
@@ -54,10 +54,28 @@ def blobify_group(group):
 
 def main():
     grpids = get_tweetgroupids()
-    blobgrp = blobify_group(get_tweetgroup(random.choice(grpids)))
-    taggrp = [tb[4].tags for tb in blobgrp]
+    taggrp = tag_tweetgroup(get_tweetgroup(random.choice(grpids)))
     pprint(taggrp)
 
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+
+
+## Notes ##
+
+'''
+models punkt
+corpora stopwords
+maxent_treebank_pos_tagger
+
+nltk.data.path
+
+STOP_TYPES = ['DET', 'CNJ']
+text = """some data here"""
+tokens = nltk.pos_tag(nltk.word_tokenize(text))
+good_words = [w for w, wtype in token if wtype not in STOP_TYPES]
+
+'''
