@@ -72,7 +72,7 @@ def parsetweets(rawtweets):
     for tweet in rawtweets:
         try:
             twtid = int(tweet['id'])
-            sname = tweet['user']['screen_name'] 
+            sname = tweet['user']['screen_name'].lower()
             twttime = tu.normdatestring(tweet['created_at'])
             twttext = tweet['text']
         except Exception as e:

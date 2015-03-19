@@ -22,7 +22,7 @@ def clean_tweettext(twttext):
     twttext = twttext.replace('#', '') # no #
     twttext = twttext.replace('@', '') # no @
     twttext = re.sub(': *$', '', twttext) # no colon + space* at end
-    twttext = re.sub('', '', twttext).strip() # single spaces only
+    twttext = tu.singlespaces(twttext).strip() # single spaces only
     return twttext
 
 
@@ -64,26 +64,7 @@ def find_similartweets(reftwt, twtlist):
 ## DB Functions ##
 
 
-def save_tweetgroup(simtwts):
-    conn = sqlite3.connect(config.dbfile)
-    with conn:
-        c = conn.cursor()
-        group_id = tu.baseencode(uuid.uuid4().int)
-        for twt in simtwts:
-            twttimestr = twt[2].strftime('%Y-%m-%d %H:%M:%S')
-            c.execute(
-                '''
-                INSERT INTO tweetgroups
-                (group_id, tweet_id, screen_name, 
-                tweet_time, cleantext) 
-                VALUES (?, ?, ?, ?, ?)
-                ''',
-                (group_id, twt[0], twt[1], twttimestr, twt[3])
-            )
-    conn.close()
-
-
-def clear_groupsdb():
+def clear_groupstable():
     conn = sqlite3.connect(config.dbfile)
     with conn:
         c = conn.cursor()
@@ -101,13 +82,34 @@ def clear_groupsdb():
         )
 
 
+def save_tweetgroup(simtwts):
+    conn = sqlite3.connect(config.dbfile)
+    with conn:
+        c = conn.cursor()
+        group_id = tu.baseencode(uuid.uuid4().int)
+        for twt in simtwts:
+            twttime = twt[2].strftime('%Y-%m-%d %H:%M:%S')
+            c.execute(
+                '''
+                INSERT INTO tweetgroups
+                (group_id, tweet_id, screen_name, 
+                tweet_time, cleantext) 
+                VALUES (?, ?, ?, ?, ?)
+                ''',
+                (group_id, twt[0], twt[1], twttime, twt[3])
+            )
+    conn.close()
+
+
+
 
 ## Main ##
 
 def main():
+    groupstablecleared = False
     print('\n')
     print('Retrieving tweets from database.\n')
-    twtlist = retrieve_tweets()
+    twtlist = retrieve_tweets().reverse()
     print('Processing tweets.\n')
     twtlist = process_tweetlist(twtlist)
     print('Finding similar tweet groups.\n')
@@ -119,6 +121,11 @@ def main():
         if(len(simtwts) > 2):
             pprint(simtwts)
             print('\n')
+            # now that we're about to save groups data, clear table if first save
+            if not groupstablecleared:
+                print('Clearing tweet groups table.\n')
+                clear_groupstable()
+                groupstablecleared = True
             save_tweetgroup(simtwts)
             print('Tweet group saved.\n')
             print(round(twtnum * 100 / twtcount), 'percent processed.\n')

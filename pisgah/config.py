@@ -5,4 +5,4 @@ twitter_token = '***REMOVED***'
 twitter_token_secret = '***REMOVED***'
 
 # Database location
-dbfile = 'data/pisgahdata.db'
+dbfile = 'data/db.sqlite'
