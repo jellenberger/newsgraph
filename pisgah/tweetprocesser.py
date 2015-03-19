@@ -17,8 +17,8 @@ def clean_tweettext(twttext):
     twttext = tu.normspace(twttext) # whitespace chars to spaces
     twttext = tu.unescape(twttext) # fix url encoded text
     twttext = tu.rmurls(twttext) # remove urls
-    twttext = twttext.replace('-', '') # - to space
-    twttext = twttext.replace('_', '') # _ to space
+    twttext = twttext.replace('-', ' ') # - to space
+    twttext = twttext.replace('_', ' ') # _ to space
     twttext = twttext.replace('#', '') # no #
     twttext = twttext.replace('@', '') # no @
     twttext = re.sub(': *$', '', twttext) # no colon + space* at end
@@ -60,20 +60,45 @@ def find_similartweets(reftwt, twtlist):
     return simtwts
 
 
+
+## DB Functions ##
+
+
 def save_tweetgroup(simtwts):
     conn = sqlite3.connect(config.dbfile)
     with conn:
         c = conn.cursor()
         group_id = tu.baseencode(uuid.uuid4().int)
         for twt in simtwts:
+            twttimestr = twt[2].strftime('%Y-%m-%d %H:%M:%S')
             c.execute(
                 '''
-                INSERT INTO tweetgroups (group_id, tweet_id, screen_name, tweet_time, cleantext) 
+                INSERT INTO tweetgroups
+                (group_id, tweet_id, screen_name, 
+                tweet_time, cleantext) 
                 VALUES (?, ?, ?, ?, ?)
                 ''',
-                (group_id, twt[0], twt[1], twt[2].strftime('%Y-%m-%d %H:%M:%S'), twt[3])
+                (group_id, twt[0], twt[1], twttimestr, twt[3])
             )
     conn.close()
+
+
+def clear_groupsdb():
+    conn = sqlite3.connect(config.dbfile)
+    with conn:
+        c = conn.cursor()
+        c.execute(
+            '''
+            DROP TABLE IF EXISTS tweetgroups
+            '''
+        )
+        c.execute(
+            '''
+            CREATE TABLE tweetgroups(
+            group_id text, tweet_id integer, screen_name text, 
+            tweet_time datetime, cleantext text)
+            '''
+        )
 
 
 
