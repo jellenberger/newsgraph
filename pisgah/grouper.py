@@ -50,9 +50,10 @@ def process_tweetlist(twtlist):
 
 
 def find_similartweets(reftwt, twtlist):
+    #TODO eliminate duplicates from added items
     simtwts = [reftwt]
     for twt in twtlist:
-        if  ((reftwt[2] - twt[2]).total_seconds() <= 64800 and 
+        if  (abs((reftwt[2] - twt[2])).total_seconds() <= 86400 and 
              reftwt[1] != twt[1]):
             ratio = fuzz.token_sort_ratio(reftwt[3], twt[3])
             if ratio >= 75 and ratio < 90:
@@ -109,8 +110,9 @@ def main():
     groupstablecleared = False
     print('\n')
     print('Retrieving tweets from database.\n')
-    twtlist = retrieve_tweets().reverse()
-    print('Processing tweets.\n')
+    twtlist = retrieve_tweets()
+    twtlist.reverse()
+    print('Preparing tweets for processing.\n')
     twtlist = process_tweetlist(twtlist)
     print('Finding similar tweet groups.\n')
     twtnum = 1
@@ -130,6 +132,7 @@ def main():
             print('Tweet group saved.\n')
             print(round(twtnum * 100 / twtcount), 'percent processed.\n')
         twtnum += 1
+    print('Done.\n')
 
 
 if __name__ == "__main__":
