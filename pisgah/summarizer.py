@@ -79,6 +79,8 @@ def main():
     pos = nx.circular_layout(G)
     labs = {n: n[0] for n in nx.nodes(G)}
     nx.draw_networkx(G, pos, node_color='w', node_size=1500, labels=labs)
+    plt.axis('off')
+    plt.tight_layout()
     plt.show()
 
 
