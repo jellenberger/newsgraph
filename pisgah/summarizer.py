@@ -1,13 +1,14 @@
 import sys
 import sqlite3
 import nltk
+import networkx as nx
 import config
 
 
 # dev imports
 import random
 from pprint import pprint
-
+import matplotlib.pyplot as plt
 
 ## DB Functions ##
 
@@ -39,14 +40,31 @@ def get_tweetgroup(groupid):
         return group
 
 
+
 ## NLP functions ##
 
-def tag_tweetgroup(group):
-    taggedtwts = []
-    for twt in group:
-        taggedtxt = nltk.pos_tag(nltk.word_tokenize(twt[4]))
-        taggedtwts.append( (twt[0], twt[1], twt[2], twt[3], taggedtxt) )
-    return taggedtwts
+def tag_phrase(phrase):
+    return nltk.pos_tag(nltk.word_tokenize(phrase))
+
+
+
+## Graph Functions ##
+
+def graph_taggedphrases(phraselist):
+    G = nx.DiGraph()
+    nodeidx = 0
+    for phrase in phraselist[:1]:
+        phrase.insert(0, ('<START>', 'START'))
+        phrase.append( ('<END>', 'END') )
+        prevnode = None
+        for token in phrase:
+            node = (token[0].lower(), token[1].lower)
+            G.add_node(node)
+            if prevnode:
+                G.add_edge(prevnode, node)
+            prevnode = node
+            nodeidx += 1
+    return G
 
 
 
@@ -54,8 +72,14 @@ def tag_tweetgroup(group):
 
 def main():
     grpids = get_tweetgroupids()
-    taggrp = tag_tweetgroup(get_tweetgroup(random.choice(grpids)))
-    pprint(taggrp)
+    twtgrp = get_tweetgroup(random.choice(grpids))
+    tagphrases = [tag_phrase(twt[4]) for twt in twtgrp]
+    plt.rcParams['figure.figsize'] = [11.0, 8.5]
+    G = graph_taggedphrases(tagphrases)
+    pos = nx.circular_layout(G)
+    labs = {n: n[0] for n in nx.nodes(G)}
+    nx.draw_networkx(G, pos, node_color='w', node_size=1500, labels=labs)
+    plt.show()
 
 
 if __name__ == "__main__":
