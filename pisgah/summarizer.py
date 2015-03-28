@@ -10,6 +10,7 @@ import random
 from pprint import pprint
 import matplotlib.pyplot as plt
 
+
 ## DB Functions ##
 
 def get_tweetgroupids():
@@ -52,18 +53,18 @@ def tag_phrase(phrase):
 
 def graph_taggedphrases(phraselist):
     G = nx.DiGraph()
-    nodeidx = 0
-    for phrase in phraselist[:1]:
-        phrase.insert(0, ('<START>', 'START'))
-        phrase.append( ('<END>', 'END') )
+    for phrase in phraselist:
+        phrase.insert(0, ('<START>', 'DELIM'))
+        phrase.append( ('<END>', 'DELIM') )
         prevnode = None
         for token in phrase:
-            node = (token[0].lower(), token[1].lower)
-            G.add_node(node)
+            thisnode = (token[0].lower(), token[1].lower())
+            if not G.has_node(thisnode):
+                G.add_node(thisnode, count=0)
+            G.node[thisnode]['count'] += 1
             if prevnode:
-                G.add_edge(prevnode, node)
-            prevnode = node
-            nodeidx += 1
+                G.add_edge(prevnode, thisnode)
+            prevnode = thisnode
     return G
 
 
@@ -74,12 +75,12 @@ def main():
     grpids = get_tweetgroupids()
     twtgrp = get_tweetgroup(random.choice(grpids))
     tagphrases = [tag_phrase(twt[4]) for twt in twtgrp]
-    plt.rcParams['figure.figsize'] = [11.0, 8.5]
+    plt.rcParams['figure.figsize'] = [10.0, 8.0]
     G = graph_taggedphrases(tagphrases)
     pos = nx.circular_layout(G)
-    labs = {n: n[0] for n in nx.nodes(G)}
+    labs = {n[0]: (n[0][0] + '\n' + n[0][1] + '\n' + str(n[1]['count'])) for n in G.nodes(data=True)}
     nx.draw_networkx(G, pos, node_color='w', node_size=1500, labels=labs)
-    plt.axis('off')
+    #plt.axis('off')
     plt.tight_layout()
     plt.show()
 
