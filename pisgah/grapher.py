@@ -45,26 +45,42 @@ def get_tweetgroup(groupid):
 ## NLP functions ##
 
 def tag_phrase(phrase):
-    return nltk.pos_tag(nltk.word_tokenize(phrase))
-
+    taggedlist =  nltk.pos_tag(nltk.word_tokenize(phrase))
+    return [( t[0], t[1].lower() ) for t in taggedlist]
 
 
 ## Graph Functions ##
 
+
+def get_nodeswithtoken(token, G):
+    allnodes = G.nodes(data=True)
+    toknodes = [n[0] for n in allnodes if n[1]['token'] == token]
+    return toknodes
+
+
 def graph_taggedphrases(phraselist):
+    #stopwords = nltk.corpus.stopwords.words('english')
     G = nx.DiGraph()
+    newnodeid = 0
     for phrase in phraselist:
-        phrase.insert(0, ('<START>', 'DELIM'))
-        phrase.append( ('<END>', 'DELIM') )
-        prevnode = None
+        prevnodeid = None
+        phrase.insert(0, ('START', 'delim'))
+        phrase.append( ('END', 'delim') )
+        print(' '.join([t[0] for t in phrase]))
         for token in phrase:
-            thisnode = (token[0].lower(), token[1].lower())
-            if not G.has_node(thisnode):
-                G.add_node(thisnode, count=0)
-            G.node[thisnode]['count'] += 1
-            if prevnode:
-                G.add_edge(prevnode, thisnode)
-            prevnode = thisnode
+            toknodes = get_nodeswithtoken(token, G)
+            if not toknodes:
+                G.add_node(newnodeid, token=token, count=1)
+                if prevnodeid is not None:
+                    G.add_edge(prevnodeid, newnodeid)
+                prevnodeid = newnodeid
+                newnodeid += 1
+            else:
+                assignednodeid = toknodes[0]
+                G.node[assignednodeid]['count'] += 1
+                if prevnodeid is not None and not G.has_edge(prevnodeid, assignednodeid):
+                    G.add_edge(prevnodeid, assignednodeid)
+                prevnodeid = assignednodeid
     return G
 
 
@@ -72,13 +88,14 @@ def graph_taggedphrases(phraselist):
 ## Main ##
 
 def main():
+    plt.rcParams['figure.figsize'] = [14.0, 8.5]
     grpids = get_tweetgroupids()
     twtgrp = get_tweetgroup(random.choice(grpids))
-    tagphrases = [tag_phrase(twt[4]) for twt in twtgrp]
-    plt.rcParams['figure.figsize'] = [14.0, 8.5]
+    tagphrases = [tag_phrase(twt[4].lower()) for twt in twtgrp]
     G = graph_taggedphrases(tagphrases)
-    pos = nx.spring_layout(G, k=0.35)
-    labs = {n[0]: (n[0][0] + '\n' + n[0][1] + '\n' + str(n[1]['count'])) for n in G.nodes(data=True)}
+    pos = nx.spring_layout(G, k=0.4)
+    nodelist = G.nodes(data=True)
+    labs = {n[0]: n[1]['token'][0] + '\n' + str(n[1]['count'])  for n in nodelist}
     nx.draw_networkx(G, pos, node_color='w', node_size=1500, labels=labs)
     #plt.axis('off')
     plt.tight_layout()
