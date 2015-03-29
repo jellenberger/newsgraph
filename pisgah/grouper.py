@@ -21,6 +21,9 @@ def clean_tweettext(twttext):
     twttext = twttext.replace('_', ' ') # _ to space
     twttext = twttext.replace('#', '') # no #
     twttext = twttext.replace('@', '') # no @
+    twttext = twttext.replace('"', '') # no double quotes
+    twttext = re.sub("^'|'$|'(?= )|(?<= )'", '', twttext) # no single quotes
+    twttext = re.sub('(?i)^watch live:|^now live:|^video:|^just in:|^developing:|^breaking( news)*:|^new:|^more:|^update:', '', twttext)
     twttext = re.sub(': *$', '', twttext) # no colon + space* at end
     twttext = tu.singlespaces(twttext).strip() # single spaces only
     return twttext
@@ -56,7 +59,7 @@ def find_similartweets(reftwt, twtlist):
         if  (abs((reftwt[2] - twt[2])).total_seconds() <= 86400 and 
              reftwt[1] != twt[1]):
             ratio = fuzz.token_sort_ratio(reftwt[3], twt[3])
-            if ratio >= 75 and ratio < 90:
+            if ratio >= 80 and ratio < 90:
                 simtwts.append(twt)
     return simtwts
 
