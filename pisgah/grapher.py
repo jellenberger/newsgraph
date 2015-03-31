@@ -52,9 +52,9 @@ def tag_phrase(phrase):
 ## Graph Functions ##
 
 
-def get_nodeswithtoken(token, G):
+def find_nodeswithtoken(token, G):
     allnodes = G.nodes(data=True)
-    toknodes = [n[0] for n in allnodes if n[1]['token'] == token]
+    toknodes = [n for n in allnodes if n[1]['token'] == token]
     return toknodes
 
 
@@ -62,22 +62,43 @@ def graph_taggedphrases(phraselist):
     #stopwords = nltk.corpus.stopwords.words('english')
     G = nx.DiGraph()
     newnodeid = 0
-    for phrase in phraselist:
+
+    # loop through phrases
+    for i, phrase in enumerate(phraselist):
         prevnodeid = None
-        phrase.insert(0, ('START', 'delim'))
-        phrase.append( ('END', 'delim') )
+        phrase.insert(0, ('<S>', 'delim'))
+        phrase.append( ('<E>', 'delim') )
         print(' '.join([t[0] for t in phrase]))
-        for token in phrase:
-            toknodes = get_nodeswithtoken(token, G)
-            if not toknodes:
-                G.add_node(newnodeid, token=token, count=1)
+
+        # loop through tokens in phrase
+        for j, token in enumerate(phrase):
+            wordid = (i, j)
+            toknodes = find_nodeswithtoken(token, G)
+
+            # all tokens from 1st phrase in phraselist are added as nodes
+            if i == 0:
+                G.add_node(newnodeid, token=token, count=1, wordids=[wordid])
+                # add edge to previous node, if any
                 if prevnodeid is not None:
                     G.add_edge(prevnodeid, newnodeid)
                 prevnodeid = newnodeid
                 newnodeid += 1
+
+            # if token not found in graph, add node
+            elif not toknodes:
+                G.add_node(newnodeid, token=token, count=1, wordids=[wordid])
+                # add edge to previous node, if any
+                if prevnodeid is not None:
+                    G.add_edge(prevnodeid, newnodeid)
+                prevnodeid = newnodeid
+                newnodeid += 1
+
+            # if token is found in graph, assign it to existing node
             else:
-                assignednodeid = toknodes[0]
+                assignednodeid = toknodes[0][0]
                 G.node[assignednodeid]['count'] += 1
+                G.node[assignednodeid]['wordids'].append(wordid)
+                # add edge from previous node, if any, if edge doesn't exist
                 if prevnodeid is not None and not G.has_edge(prevnodeid, assignednodeid):
                     G.add_edge(prevnodeid, assignednodeid)
                 prevnodeid = assignednodeid
@@ -88,13 +109,16 @@ def graph_taggedphrases(phraselist):
 ## Main ##
 
 def main():
-    plt.rcParams['figure.figsize'] = [14.0, 8.5]
     grpids = get_tweetgroupids()
     twtgrp = get_tweetgroup(random.choice(grpids))
     tagphrases = [tag_phrase(twt[4].lower()) for twt in twtgrp]
     G = graph_taggedphrases(tagphrases)
-    pos = nx.spring_layout(G, k=0.4)
     nodelist = G.nodes(data=True)
+
+    #pprint(nodelist)
+
+    plt.rcParams['figure.figsize'] = [13.5, 8.25]
+    pos = nx.spring_layout(G, k=0.3)
     labs = {n[0]: n[1]['token'][0] + '\n' + str(n[1]['count'])  for n in nodelist}
     nx.draw_networkx(G, pos, node_color='w', node_size=1500, labels=labs)
     #plt.axis('off')
