@@ -4,11 +4,11 @@ import nltk
 import networkx as nx
 import config
 
-
 # dev imports
 import random
 from pprint import pprint
 import matplotlib.pyplot as plt
+
 
 
 ## DB Functions ##
@@ -49,8 +49,8 @@ def tag_phrase(phrase):
     return [( t[0], t[1].lower() ) for t in taggedlist]
 
 
-## Graph Functions ##
 
+## Graph Functions ##
 
 def find_nodeswithtoken(token, G):
     allnodes = G.nodes(data=True)
@@ -59,7 +59,7 @@ def find_nodeswithtoken(token, G):
 
 
 def graph_taggedphrases(phraselist):
-    #stopwords = nltk.corpus.stopwords.words('english')
+    stopwords = nltk.corpus.stopwords.words('english')
     G = nx.DiGraph()
     newnodeid = 0
 
@@ -73,19 +73,11 @@ def graph_taggedphrases(phraselist):
         # loop through tokens in phrase
         for j, token in enumerate(phrase):
             wordid = (i, j)
+            isstopword = token[0] in stopwords
             toknodes = find_nodeswithtoken(token, G)
 
-            # all tokens from 1st phrase in phraselist are added as nodes
-            if i == 0:
-                G.add_node(newnodeid, token=token, count=1, wordids=[wordid])
-                # add edge to previous node, if any
-                if prevnodeid is not None:
-                    G.add_edge(prevnodeid, newnodeid)
-                prevnodeid = newnodeid
-                newnodeid += 1
-
-            # if token not found in graph, add node
-            elif not toknodes:
+            # if token not found in graph or is from 1st phrase, add node
+            if not toknodes or i == 0:
                 G.add_node(newnodeid, token=token, count=1, wordids=[wordid])
                 # add edge to previous node, if any
                 if prevnodeid is not None:
@@ -102,6 +94,7 @@ def graph_taggedphrases(phraselist):
                 if prevnodeid is not None and not G.has_edge(prevnodeid, assignednodeid):
                     G.add_edge(prevnodeid, assignednodeid)
                 prevnodeid = assignednodeid
+
     return G
 
 
@@ -117,7 +110,7 @@ def main():
 
     #pprint(nodelist)
 
-    plt.rcParams['figure.figsize'] = [13.5, 8.25]
+    plt.rcParams['figure.figsize'] = [14.0, 8.3]
     pos = nx.spring_layout(G, k=0.3)
     labs = {n[0]: n[1]['token'][0] + '\n' + str(n[1]['count'])  for n in nodelist}
     nx.draw_networkx(G, pos, node_color='w', node_size=1500, labels=labs)
@@ -128,8 +121,6 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-
-
 
 
 ## Notes ##
