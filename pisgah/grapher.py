@@ -3,6 +3,7 @@ import sqlite3
 import nltk
 import networkx as nx
 import config
+import string
 
 # dev imports
 import random
@@ -60,6 +61,7 @@ def find_nodeswithtoken(token, G):
 
 def graph_taggedphrases(phraselist):
     stopwords = nltk.corpus.stopwords.words('english')
+    punct = string.punctuation
     G = nx.DiGraph()
     newnodeid = 0
 
@@ -73,8 +75,11 @@ def graph_taggedphrases(phraselist):
         # loop through tokens in phrase
         for j, token in enumerate(phrase):
             wordid = (i, j)
-            isstopword = token[0] in stopwords
+            notstopword = token[0] not in stopwords
+            notpunct = token[0] not in punct
             toknodes = find_nodeswithtoken(token, G)
+            notfrag = not token[0].startswith("'") # not possessive or verb of contraction
+            if len(toknodes) > 1: print(len(toknodes), 'matches for', token[0])
 
             # if token not found in graph or is from 1st phrase, add node
             if not toknodes or i == 0:
@@ -85,8 +90,8 @@ def graph_taggedphrases(phraselist):
                 prevnodeid = newnodeid
                 newnodeid += 1
 
-            # if token is found in graph, assign it to existing node
-            else:
+            # if token is found in graph
+            elif len(toknodes) == 1 and notstopword and notpunct and notfrag:
                 assignednodeid = toknodes[0][0]
                 G.node[assignednodeid]['count'] += 1
                 G.node[assignednodeid]['wordids'].append(wordid)
@@ -95,6 +100,10 @@ def graph_taggedphrases(phraselist):
                     G.add_edge(prevnodeid, assignednodeid)
                 prevnodeid = assignednodeid
 
+            elif notstopword and notpunct and notfrag:
+                print(token[0], 'is ambiguous and not a stopword')
+            else:
+                print(token[0], 'is a stopword or punctuation or fragment')
     return G
 
 
