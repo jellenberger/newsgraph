@@ -47,16 +47,27 @@ def get_tweetgroup(groupid):
 
 def tag_phrase(phrase):
     taggedlist =  nltk.pos_tag(nltk.word_tokenize(phrase))
-    return [( t[0], t[1].lower() ) for t in taggedlist]
+    return [( t[0], t[1] ) for t in taggedlist]
 
 
 
 ## Graph Functions ##
 
+def predecessor_token(tokenid, phraselist):
+    if tokenid[1] == 0:
+        return None
+    return phraselist[tokenid[0]][tokenid[1] - 1]
+
+
+def successor_token(tokenid, phraselist):
+    if tokenid[1] >= len(phraselist[tokenid[0]]):
+        return None
+    return phraselist[tokenid[0]][tokenid[1] + 1]
+
+
 def find_nodeswithtoken(token, G):
-    allnodes = G.nodes(data=True)
-    toknodes = [n for n in allnodes if n[1]['token'] == token]
-    return toknodes
+    matchnodes = [n for n in G.nodes() if G.node[n]['token'] == token]
+    return matchnodes
 
 
 def graph_taggedphrases(phraselist):
@@ -68,24 +79,25 @@ def graph_taggedphrases(phraselist):
     # loop through phrases
     for i, phrase in enumerate(phraselist):
         prevnodeid = None
-        phrase.insert(0, ('<S>', 'delim'))
-        phrase.append( ('<E>', 'delim') )
+        phrase.insert(0, ('<S>', 'DELIM'))
+        phrase.append( ('<E>', 'DELIM') )
+
         print(' '.join([t[0] for t in phrase]))
 
         # loop through tokens in phrase
         for j, token in enumerate(phrase):
+            # variables used by graph population code
             tokenid = (i, j)
-            isfirstphrase = (j == 0)
+            isfirstphrase = (i == 0)
             isstopword = token[0] in stopwords
             ispunct = token[0] in punct
             isfrag = token[0].startswith("'") # not possessive or verb of contraction
             matchnodes = find_nodeswithtoken(token, G)
             nmatches = len(matchnodes)
 
-            if len(matchnodes) > 1: print(nmatches, 'matches for', token[0])
-
-            # if token not found in graph or is from 1st phrase, add node
+            # token is in first phrase or has no matching nodes, add node to G
             if nmatches == 0 or isfirstphrase:
+                # add node for token
                 G.add_node(newnodeid, token=token, count=1, tokenids=[tokenid])
                 # add edge to previous node, if any
                 if prevnodeid is not None:
@@ -93,20 +105,27 @@ def graph_taggedphrases(phraselist):
                 prevnodeid = newnodeid
                 newnodeid += 1
 
-            # if token is found in graph
+            # token has only 1 matching node and is a non-stopword
             elif nmatches == 1 and not (isstopword or ispunct or isfrag):
-                assignednodeid = matchnodes[0][0]
-                G.node[assignednodeid]['count'] += 1
-                G.node[assignednodeid]['tokenids'].append(tokenid)
-                # add edge from previous node, if any, if edge doesn't exist
-                if prevnodeid is not None and not G.has_edge(prevnodeid, assignednodeid):
-                    G.add_edge(prevnodeid, assignednodeid)
-                prevnodeid = assignednodeid
+                # assign token to only matched node
+                assignednode = matchnodes[0]
+                G.node[assignednode]['count'] += 1
+                G.node[assignednode]['tokenids'].append(tokenid)
+                # add edge from previous node, if there is one, if edge doesn't exist
+                if prevnodeid is not None and not G.has_edge(prevnodeid, assignednode):
+                    G.add_edge(prevnodeid, assignednode)
+                prevnodeid = assignednode
 
+            # token has > 1 matching node and is a non-stopword
             elif not (isstopword or ispunct or isfrag):
-                print(token[0], 'is ambiguous and not a stopword')
+                pass
+
+            # token is a stopword
             else:
-                print(token[0], 'is a stopword or punctuation or fragment')
+                prednode = G.predecessors(matchnodes[0])[0]
+                succnode = G.successors(matchnodes[0])[0]
+                print(predecessor_token(tokenid, phraselist), token, successor_token(tokenid, phraselist))
+
     return G
 
 
@@ -129,7 +148,6 @@ def main():
     #plt.axis('off')
     plt.tight_layout()
     plt.show()
-
 
 if __name__ == "__main__":
     sys.exit(main())
