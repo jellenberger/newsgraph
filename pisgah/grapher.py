@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 
 
-## DB Functions ##
+## DB ##
 
 def get_tweetgroupids():
     with sqlite3.connect(config.dbfile) as conn:
@@ -43,7 +43,7 @@ def get_tweetgroup(groupid):
 
 
 
-## NLP functions ##
+## NLP ##
 
 def tag_phrase(phrase):
     taggedlist =  nltk.pos_tag(nltk.word_tokenize(phrase))
@@ -51,15 +51,15 @@ def tag_phrase(phrase):
 
 
 
-## Graph Functions ##
+## Graph Building ##
 
-def predecessor_token(tokenid, phraselist):
+def prev_tokeninphrase(tokenid, phraselist):
     if tokenid[1] == 0:
         return None
     return phraselist[tokenid[0]][tokenid[1] - 1]
 
 
-def successor_token(tokenid, phraselist):
+def next_tokeninphrase(tokenid, phraselist):
     if tokenid[1] >= len(phraselist[tokenid[0]]):
         return None
     return phraselist[tokenid[0]][tokenid[1] + 1]
@@ -71,6 +71,8 @@ def find_nodeswithtoken(token, G):
 
 
 def graph_taggedphrases(phraselist):
+    print('')
+
     stopwords = nltk.corpus.stopwords.words('english')
     punct = string.punctuation
     G = nx.DiGraph()
@@ -79,10 +81,11 @@ def graph_taggedphrases(phraselist):
     # loop through phrases
     for i, phrase in enumerate(phraselist):
         prevnodeid = None
-        phrase.insert(0, ('<S>', 'DELIM'))
-        phrase.append( ('<E>', 'DELIM') )
+        assignednodes = set()
+        phrase.insert(0, ('START', 'DELIM'))
+        phrase.append( ('END', 'DELIM') )
 
-        print(' '.join([t[0] for t in phrase]))
+        print(' '.join([t[0] + '/' + t[1] for t in phrase]))
 
         # loop through tokens in phrase
         for j, token in enumerate(phrase):
@@ -91,29 +94,33 @@ def graph_taggedphrases(phraselist):
             isfirstphrase = (i == 0)
             isstopword = token[0] in stopwords
             ispunct = token[0] in punct
-            isfrag = token[0].startswith("'") # not possessive or verb of contraction
-            matchnodes = find_nodeswithtoken(token, G)
-            nmatches = len(matchnodes)
+            isfrag = token[0].startswith("'") # 's or contraction verb
+            matchnodes = set(find_nodeswithtoken(token, G))
+            candidatenodes = list(matchnodes - assignednodes)
+            ncandidates = len(candidatenodes)
 
             # token is in first phrase or has no matching nodes, add node to G
-            if nmatches == 0 or isfirstphrase:
+            #if nmatches == 0 or isfirstphrase:
+            if ncandidates == 0 or isfirstphrase:
                 # add node for token
                 G.add_node(newnodeid, token=token, count=1, tokenids=[tokenid])
                 # add edge to previous node, if any
                 if prevnodeid is not None:
                     G.add_edge(prevnodeid, newnodeid)
+                assignednodes.add(newnodeid)
                 prevnodeid = newnodeid
                 newnodeid += 1
 
             # token has only 1 matching node and is a non-stopword
-            elif nmatches == 1 and not (isstopword or ispunct or isfrag):
+            elif ncandidates == 1 and not (isstopword or ispunct or isfrag):
                 # assign token to only matched node
-                assignednode = matchnodes[0]
+                assignednode = candidatenodes[0]
                 G.node[assignednode]['count'] += 1
                 G.node[assignednode]['tokenids'].append(tokenid)
                 # add edge from previous node, if there is one, if edge doesn't exist
                 if prevnodeid is not None and not G.has_edge(prevnodeid, assignednode):
                     G.add_edge(prevnodeid, assignednode)
+                assignednodes.add(assignednode)
                 prevnodeid = assignednode
 
             # token has > 1 matching node and is a non-stopword
@@ -122,10 +129,37 @@ def graph_taggedphrases(phraselist):
 
             # token is a stopword
             else:
-                prednode = G.predecessors(matchnodes[0])[0]
-                succnode = G.successors(matchnodes[0])[0]
-                print(predecessor_token(tokenid, phraselist), token, successor_token(tokenid, phraselist))
-
+                adjtoks = [prev_tokeninphrase(tokenid, phraselist),
+                           next_tokeninphrase(tokenid, phraselist)]
+                mnodescontext = []
+                for n in candidatenodes:
+                    predtoks = [G.node[pnode]['token'] for pnode in G.predecessors(n)]
+                    succtoks = [G.node[pnode]['token'] for pnode in G.successors(n)]
+                    nmatchcontext = len(set(predtoks + succtoks) & set(adjtoks))
+                    mnodescontext.append(nmatchcontext)
+                bestcontext = max(mnodescontext)
+                if bestcontext > 0:
+                    bestcontextnode = candidatenodes[mnodescontext.index(bestcontext)]
+                else:
+                    bestcontextnode = None
+                if bestcontextnode is not None:
+                    assignednode = bestcontextnode
+                    G.node[assignednode]['count'] += 1
+                    G.node[assignednode]['tokenids'].append(tokenid)
+                    # add edge from previous node, if there is one, if edge doesn't exist
+                    if prevnodeid is not None and not G.has_edge(prevnodeid, assignednode):
+                        G.add_edge(prevnodeid, assignednode)
+                    assignednodes.add(assignednode)
+                    prevnodeid = assignednode
+                else:
+                    # add node for token
+                    G.add_node(newnodeid, token=token, count=1, tokenids=[tokenid])
+                    # add edge to previous node, if any
+                    if prevnodeid is not None:
+                        G.add_edge(prevnodeid, newnodeid)
+                    assignednodes.add(newnodeid)
+                    prevnodeid = newnodeid
+                    newnodeid += 1
     return G
 
 
@@ -144,7 +178,7 @@ def main():
     plt.rcParams['figure.figsize'] = [14.0, 8.3]
     pos = nx.spring_layout(G, k=0.3)
     labs = {n[0]: n[1]['token'][0] + '\n' + str(n[1]['count'])  for n in nodelist}
-    nx.draw_networkx(G, pos, node_color='w', node_size=1500, labels=labs)
+    nx.draw_networkx(G, pos, node_color='w', node_size=1800, labels=labs)
     #plt.axis('off')
     plt.tight_layout()
     plt.show()
