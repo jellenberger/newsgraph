@@ -2,12 +2,11 @@
 
 ## Tweet Processing ##
 - omit quotes?
+- eliminate duplicates within match group
 - put back hypenated words?
 
 ## Graphing
-- assign nodes in correct order
-- separate function for best context
+- assign/add nodes in correct order by word type
 - function for highest count
-- add mapping for ambigous non-stopwords
-- combine node add code into 1 or 2 functions?
+- add mapping for ambigous non-stopwords for context and highest count
 - require punct, possessives and contraction verbs to follow same word?
