@@ -24,7 +24,7 @@ class WordGraph(nx.DiGraph):
         self.add_node(nodeid, token=token, count=1, tokenids=[tokenid])
         # add edge to previous node, if any
         if self.prevnodeid is not None:
-            self.add_edge(self.prevnodeid, nodeid)
+            self.add_edge(self.prevnodeid, nodeid, count=1, weight=0)
         self.assignednodes.append(nodeid)
         self.prevnodeid = nodeid
         self.newnodeid += 1
@@ -34,9 +34,11 @@ class WordGraph(nx.DiGraph):
         self.node[nodeid]['count'] += 1
         self.node[nodeid]['tokenids'].append(tokenid)
         # add edge from previous node, if any, where edge doesn't exist
-        if (self.prevnodeid is not None and not
-                self.has_edge(self.prevnodeid, nodeid)):
-            self.add_edge(self.prevnodeid, nodeid)
+        if self.prevnodeid is not None:
+            if self.has_edge(self.prevnodeid, nodeid):
+                self.edge[self.prevnodeid][nodeid]['count'] += 1
+            else:
+                self.add_edge(self.prevnodeid, nodeid, count=1, weight=0)              
         self.assignednodes.append(nodeid)
         self.prevnodeid = nodeid
         return nodeid
@@ -91,7 +93,7 @@ def next_token(tokenid, phraselist):
 
 
 def find_nodeswithtoken(token, G):
-    matchnodes = [n for n in G.nodes() if G.node[n]['token'] == token]
+    matchnodes = [n for n in G.nodes_iter() if G.node[n]['token'] == token]
     return matchnodes
 
 
@@ -190,6 +192,14 @@ def graph_taggedphrases(phraselist):
 
     return G
 
+def weight_edges(G):
+    for e in G.edges():
+        nodei = e[0]
+        nodej = e[1]
+        nodecount = G.node[nodei]['count'] + G.node[nodej]['count']
+        edgecount = G.edge[nodei][nodej]['count']
+        G.edge[e[0]][e[1]]['weight'] = nodecount / edgecount
+    return G
 
 
 ## Main ##
@@ -200,9 +210,14 @@ def main():
     twtgrp = get_tweetgroup(random.choice(grpids))
     tagphrases = [tag_phrase(twt[4].lower()) for twt in twtgrp]
     G = graph_taggedphrases(tagphrases)
+    G = weight_edges(G)
     nodelist = G.nodes(data=True)
 
     print('')
+    '''
+    from pprint import pprint
+    pprint(G.edges(data=True))
+    '''
 
     plt.rcParams['figure.figsize'] = [14.0, 8.3]
     pos = nx.spring_layout(G, k=0.3)

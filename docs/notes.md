@@ -6,7 +6,8 @@
 - put back hypenated words?
 
 ## Graphing
-- assign/add nodes in correct order by word type
-- function for highest count
-- add mapping for ambigous non-stopwords for context and highest count
 - require punct, possessives and contraction verbs to follow same word?
+
+## Weighting
+- add multi-path weight
+- normalize weighting for paths from start and to end
