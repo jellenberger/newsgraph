@@ -5,9 +5,8 @@ import networkx as nx
 import config
 import string
 
-# dev imports
+
 import random
-from pprint import pprint
 import matplotlib.pyplot as plt
 
 
@@ -30,13 +29,13 @@ class WordGraph(nx.DiGraph):
         self.prevnodeid = nodeid
         self.newnodeid += 1
         return nodeid
- 
+
     def assign_wordnode(self, nodeid, tokenid):
         self.node[nodeid]['count'] += 1
         self.node[nodeid]['tokenids'].append(tokenid)
         # add edge from previous node, if any, where edge doesn't exist
         if (self.prevnodeid is not None and not
-            self.has_edge(self.prevnodeid, nodeid)):
+                self.has_edge(self.prevnodeid, nodeid)):
             self.add_edge(self.prevnodeid, nodeid)
         self.assignednodes.append(nodeid)
         self.prevnodeid = nodeid
@@ -72,8 +71,8 @@ def get_tweetgroup(groupid):
 ## NLP ##
 
 def tag_phrase(phrase):
-    taggedlist =  nltk.pos_tag(nltk.word_tokenize(phrase))
-    return [( t[0], t[1] ) for t in taggedlist]
+    taggedlist = nltk.pos_tag(nltk.word_tokenize(phrase))
+    return [(t[0], t[1]) for t in taggedlist]
 
 
 
@@ -97,7 +96,7 @@ def find_nodeswithtoken(token, G):
 
 
 def find_contextcandidate(tokenid, phraselist, candidatenodes, G):
-    adjtoks = [prev_token(tokenid, phraselist), 
+    adjtoks = [prev_token(tokenid, phraselist),
                next_token(tokenid, phraselist)]
     contextcounts = []
     for n in candidatenodes:
@@ -121,7 +120,6 @@ def find_countcandidate(candidatenodes, G):
 ## Graphing ##
 
 def graph_taggedphrases(phraselist):
-    print('')
 
     stopwords = nltk.corpus.stopwords.words('english')
     punct = string.punctuation
@@ -130,8 +128,9 @@ def graph_taggedphrases(phraselist):
     # loop through phrases
     for i, phrase in enumerate(phraselist):
         G.start_newphrase()
+        isfirstphrase = (i == 0)
         phrase.insert(0, ('START', 'DELIM'))
-        phrase.append( ('END', 'DELIM') )
+        phrase.append(('END', 'DELIM'))
 
         print(' '.join([t[0] for t in phrase]))
 
@@ -139,44 +138,55 @@ def graph_taggedphrases(phraselist):
         for j, token in enumerate(phrase):
             # variables used by graph population code
             tokenid = (i, j)
-            isfirstphrase = (i == 0)
             isstopword = token[0] in stopwords
             ispunct = token[0] in punct
             isfrag = token[0].startswith("'") # 's or contraction verb
             matchnodes = find_nodeswithtoken(token, G)
-            candidatenodes = list(set(matchnodes) - set(G.assignednodes)) #TODO check that this is working
+            candidatenodes = list(set(matchnodes) -
+                                  set(G.assignednodes))
             ncandidates = len(candidatenodes)
 
-            # if token in first phrase or has no matching nodes, add node to G
-            #if nmatches == 0 or isfirstphrase:
-            if ncandidates == 0 or isfirstphrase:
+            # if first phrase, add new node for token
+            if isfirstphrase:
                 G.add_wordnode(token, tokenid)
 
-            # token has only 1 matching node and is a non-stopword
-            elif ncandidates == 1 and not (isstopword or ispunct or isfrag):
-                # assign token to only matched node
-                assignednode = candidatenodes[0]
-                G.assign_wordnode(assignednode, tokenid)
-
-            # token has > 1 matching node and is a non-stopword
+            # if non-stopword
             elif not (isstopword or ispunct or isfrag):
-                bestcontextnode = find_contextcandidate(tokenid, phraselist, candidatenodes, G)
-                bestcountnode = find_countcandidate(candidatenodes, G) #TODO Check that this is working
-                if bestcontextnode is not None:
-                    G.assign_wordnode(bestcontextnode, tokenid)
-                else:
+
+                # if no matching nodes, add node for token
+                if ncandidates == 0:
                     G.add_wordnode(token, tokenid)
 
-            # token is a stopword
-            elif isstopword or ispunct or isfrag:
-                bestcontextnode = find_contextcandidate(tokenid, phraselist, candidatenodes, G)
-                if bestcontextnode is not None:
-                    G.assign_wordnode(bestcontextnode, tokenid)
-                else:
-                    G.add_wordnode(token, tokenid)
+                # if only 1 matching node, assign token to it
+                elif ncandidates == 1:
+                    assignednode = candidatenodes[0]
+                    G.assign_wordnode(assignednode, tokenid)
 
+                # if > 1 matching node, pick best node for assignment
+                else:
+                    bestcontextnode = find_contextcandidate(tokenid, phraselist,
+                                                            candidatenodes, G)
+                    bestcountnode = find_countcandidate(candidatenodes, G)
+                    if bestcontextnode is not None:
+                        G.assign_wordnode(bestcontextnode, tokenid)
+                    else:
+                        G.add_wordnode(token, tokenid)
+
+            # if a stopword
             else:
-                print('Unmapped word.')
+
+                # if no matching node, add node for token
+                if ncandidates == 0:
+                    G.add_wordnode(token, tokenid)
+
+                # if >= 1 matching nodes, pick best node
+                else:
+                    bestcontextnode = find_contextcandidate(tokenid, phraselist, 
+                                                            candidatenodes, G)
+                    if bestcontextnode is not None:
+                        G.assign_wordnode(bestcontextnode, tokenid)
+                    else:
+                        G.add_wordnode(token, tokenid)
 
     return G
 
@@ -185,15 +195,18 @@ def graph_taggedphrases(phraselist):
 ## Main ##
 
 def main():
+
     grpids = get_tweetgroupids()
     twtgrp = get_tweetgroup(random.choice(grpids))
     tagphrases = [tag_phrase(twt[4].lower()) for twt in twtgrp]
     G = graph_taggedphrases(tagphrases)
     nodelist = G.nodes(data=True)
 
+    print('')
+
     plt.rcParams['figure.figsize'] = [14.0, 8.3]
     pos = nx.spring_layout(G, k=0.3)
-    labs = {n[0]: n[1]['token'][0] + '\n' + str(n[1]['count'])  
+    labs = {n[0]: n[1]['token'][0] + '\n' + str(n[1]['count'])
             for n in nodelist}
     nx.draw_networkx(G, pos, node_color='w', node_size=1800, labels=labs)
     #plt.axis('off')
