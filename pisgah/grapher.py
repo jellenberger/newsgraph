@@ -193,12 +193,18 @@ def graph_taggedphrases(phraselist):
     return G
 
 def weight_edges(G):
-    for e in G.edges():
-        nodei = e[0]
-        nodej = e[1]
-        nodecount = G.node[nodei]['count'] + G.node[nodej]['count']
-        edgecount = G.edge[nodei][nodej]['count']
-        G.edge[e[0]][e[1]]['weight'] = nodecount / edgecount
+    for u, v in G.edges():
+        countu = G.node[u]['count']
+        countv = G.node[v]['count']
+        #edgecount = G.edge[u][v]['count']
+        distsum = 0
+        for su, i in G.node[u]['tokenids']:
+            for sv, j in G.node[v]['tokenids']:
+                if su == sv and j > i:
+                    distsum += (j - i)
+        w = (countu + countv) / (1 / distsum)
+        wprime = w / (countv * countu)
+        G.edge[u][v]['weight'] = wprime
     return G
 
 
@@ -212,8 +218,10 @@ def main():
     G = graph_taggedphrases(tagphrases)
     G = weight_edges(G)
     nodelist = G.nodes(data=True)
+    edgelist = G.edges(data=True)
 
     print('')
+
     '''
     from pprint import pprint
     pprint(G.edges(data=True))
@@ -221,10 +229,12 @@ def main():
 
     plt.rcParams['figure.figsize'] = [14.0, 8.3]
     pos = nx.spring_layout(G, k=0.3)
-    labs = {n[0]: n[1]['token'][0] + '\n' + str(n[1]['count'])
-            for n in nodelist}
-    nx.draw_networkx(G, pos, node_color='w', node_size=1800, labels=labs)
-    #plt.axis('off')
+    nlabs = {n[0]: n[1]['token'][0] + '\n' + 
+             str(n[1]['count'])
+             for n in nodelist}
+    elabs = {(e[0], e[1]): str(round(e[2]['weight'], 2)) for e in edgelist}
+    nx.draw_networkx(G, pos, node_color='w', node_size=1250, labels=nlabs)
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=elabs)
     plt.tight_layout()
     plt.show()
 
