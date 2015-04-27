@@ -12,3 +12,7 @@
 ## Weighting and Ranking
 - use edge count in weighting?
 - determine how, when  to normalize weighting for paths from start and end
+
+## Grammaticality
+- data for n-grams: it data needs language detection
+- implement n-gram frequency for model
