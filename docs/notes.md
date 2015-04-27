@@ -7,7 +7,8 @@
 
 ## Graphing
 - require punct, possessives and contraction verbs to follow same word?
+- save graph objects to db
 
-## Weighting
-- add multi-path weight
-- normalize weighting for paths from start and to end
+## Weighting and Ranking
+- use edge count in weighting?
+- determine how, when  to normalize weighting for paths from start and end
