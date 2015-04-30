@@ -4,6 +4,7 @@ import uuid
 import sqlite3
 from fuzzywuzzy import fuzz
 import config
+import string
 import textutils as tu
 
 # dev imports
@@ -17,14 +18,15 @@ def clean_tweettext(twttext):
     twttext = tu.normspace(twttext) # whitespace chars to spaces
     twttext = tu.unescape(twttext) # fix url encoded text
     twttext = tu.rmurls(twttext) # remove urls
-    twttext = twttext.replace('-', ' ') # - to space
+    #twttext = twttext.replace('-', ' ') # - to space
     twttext = twttext.replace('_', ' ') # _ to space
     twttext = twttext.replace('#', '') # no #
     twttext = twttext.replace('@', '') # no @
     twttext = twttext.replace('"', '') # no double quotes
-    twttext = re.sub("^'|'$|'(?= )|(?<= )'", '', twttext) # no single quotes
-    twttext = re.sub('(?i)^watch live:|^now live:|^video:|^just in:|^developing:|^breaking( news)*:|^new:|^more:|^update:', '', twttext)
-    twttext = re.sub(': *$', '', twttext) # no colon + space* at end
+    twttext = re.sub(r"^'|'$|'(?= )|(?<= )'", '', twttext) # no single quotes
+    twttext = re.sub(r'(?i)^watch live:|^now live:|^video:|^just in:|^developing:|^breaking( news)*:|^new:|^more:|^update:', '', twttext, flags=re.I)
+    #twttext = re.sub(r': *$', '', twttext) # no colon + space* at end
+    twttext = twttext.strip(string.punctuation + ' ')
     twttext = tu.singlespaces(twttext).strip() # single spaces only
     return twttext
 
@@ -45,6 +47,7 @@ def retrieve_tweets():
 
 def process_tweetlist(twtlist):
     outlist = []
+
     for twt in twtlist:
         twttext = clean_tweettext(twt[3])
         twtdatetime = tu.stringtodate(twt[2])
@@ -56,10 +59,11 @@ def find_similartweets(reftwt, twtlist):
     #TODO eliminate duplicates from added items
     simtwts = [reftwt]
     for twt in twtlist:
-        if  (abs((reftwt[2] - twt[2])).total_seconds() <= 86400 and 
-             reftwt[1] != twt[1]):
+        time_diff = abs((reftwt[2] - twt[2])).total_seconds()
+        simtwts_snames = [st[1] for st in simtwts]
+        if  (time_diff <= 86400 and twt[1] not in simtwts_snames):
             ratio = fuzz.token_sort_ratio(reftwt[3], twt[3])
-            if ratio >= 80 and ratio < 90:
+            if ratio >= 70 and ratio < 90:
                 simtwts.append(twt)
     return simtwts
 
@@ -112,28 +116,28 @@ def save_tweetgroup(simtwts):
 def main():
     groupstablecleared = False
     print('\n')
-    print('Retrieving tweets from database.\n')
+    print('Retrieving tweets from database.')
     twtlist = retrieve_tweets()
     twtlist.reverse()
-    print('Preparing tweets for processing.\n')
+    print('Preparing tweets for processing.')
     twtlist = process_tweetlist(twtlist)
-    print('Finding similar tweet groups.\n')
+    print('Finding similar tweet groups.')
     twtnum = 1
     twtcount = len(twtlist)
     while twtlist:
         reftwt = twtlist.pop()
         simtwts = find_similartweets(reftwt, twtlist)
-        if(len(simtwts) > 2):
+        if(len(simtwts) > 3):
             pprint(simtwts)
             print('\n')
             # now that we're about to save groups data, clear table if first save
             if not groupstablecleared:
-                print('Clearing tweet groups table.\n')
+                print('Clearing tweet groups table.')
                 clear_groupstable()
                 groupstablecleared = True
             save_tweetgroup(simtwts)
-            print('Tweet group saved.\n')
-            print(round(twtnum * 100 / twtcount), 'percent processed.\n')
+            print('Tweet group saved.')
+            print(round(twtnum * 100 / twtcount), 'percent processed.')
         twtnum += 1
     print('Done.\n')
 
