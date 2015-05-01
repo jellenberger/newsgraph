@@ -202,6 +202,7 @@ def weight_edges(G):
             for sv, j in G.node[v]['tokenids']:
                 if su == sv and j > i:
                     distsum += (j - i)
+        #w = (countu + countv) / (edgecount / distsum)
         w = (countu + countv) / (1 / distsum)
         wprime = w / (countv * countu)
         G.edge[u][v]['weight'] = wprime
@@ -227,7 +228,7 @@ def main():
     pprint(G.edges(data=True))
     '''
 
-    plt.rcParams['figure.figsize'] = [14.0, 8.3]
+    plt.rcParams['figure.figsize'] = [16.0, 12.0]
     pos = nx.spring_layout(G, k=0.3)
     nlabs = {n[0]: n[1]['token'][0] + '\n' + 
              str(n[1]['count'])
