@@ -38,10 +38,10 @@ commonpunc_transtable = {
     ord('\u2014'): '-',
 }
 
-rmpunc_transtable = dict.fromkeys(i for i in range(sys.maxunicode)
-                                  if unicodedata.category(chr(i)).startswith('P'))
-rmpunc_transtable.update(dict.fromkeys(map(ord, string.punctuation)))
+punc_ords = {i for i in range(sys.maxunicode)}
+punc_ords.update(map(ord, string.punctuation))
 
+rmpunc_transtable = dict.fromkeys(punc_ords)
 
 
 ## String simplification and normalization functions ##
