@@ -76,7 +76,8 @@ def stringtodate(s):
 
 # reduces all sequences of space chars with a single space char
 def singlespaces(s):
-    s = re.sub(' +', ' ', s)
+    multspacereg = re.compile(r' +')
+    s = re.sub(multspacereg, ' ', s)
     return s
 
 
@@ -88,7 +89,8 @@ def rmpunc(s):
 
 # remove url from string
 def rmurls(s):
-    s = re.sub('(([\w-]+://?|www[.])[^\s()<>]+)', '', s)
+    urlreg = re.compile(r'(([\w-]+://?|www[.])[^\s()<>]+)')
+    s = re.sub(urlreg, '', s)
     return s
 
 
