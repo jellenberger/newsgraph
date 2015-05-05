@@ -14,6 +14,8 @@ from pprint import pprint
 
 
 def clean_tweettext(twttext):
+    strippunc = ''.join(set(string.punctuation) - {"'", '"', "!", ".", "?"})
+
     twttext = tu.asciichars(twttext) # ascii chars only
     twttext = tu.normspace(twttext) # whitespace chars to spaces
     twttext = tu.unescape(twttext) # fix url encoded text
@@ -21,12 +23,20 @@ def clean_tweettext(twttext):
     #twttext = twttext.replace('-', ' ') # - to space
     twttext = twttext.replace('_', ' ') # _ to space
     twttext = twttext.replace('#', '') # no #
+    twttext = re.sub(r'-? ?(@|@.)[\w]+[\W]*$', '', twttext, flags =re.I) # no handle at end
     twttext = twttext.replace('@', '') # no @
-    twttext = twttext.replace('"', '') # no double quotes
-    twttext = re.sub(r"^'|'$|'(?= )|(?<= )'", '', twttext) # no single quotes
-    twttext = re.sub(r'(?i)^watch live:|^now live:|^video:|^just in:|^developing:|^breaking( news)*:|^new:|^more:|^update:', '', twttext, flags=re.I)
+    twttext = twttext.replace('.@', '') # no .@
+
+    #twttext = twttext.replace('"', '') # no double quotes
+    #twttext = re.sub(r"^'|'$|'(?= )|(?<= )'", '', twttext) # no single quotes
+    twttext = re.sub(
+        r'^((watch|now) live:|(live |raw )?video:|just in:|developing:|breaking( news)?:|new:|more:|update:|look:)', 
+        '', 
+        twttext, 
+        flags=re.I
+    )
     #twttext = re.sub(r': *$', '', twttext) # no colon + space* at end
-    twttext = twttext.strip(string.punctuation + ' ')
+    twttext = twttext.strip(strippunc + ' ')
     twttext = tu.singlespaces(twttext).strip() # single spaces only
     return twttext
 
@@ -115,7 +125,6 @@ def save_tweetgroup(simtwts):
 
 def main():
     groupstablecleared = False
-    print('\n')
     print('Retrieving tweets from database.')
     twtlist = retrieve_tweets()
     twtlist.reverse()
