@@ -30,7 +30,7 @@ def clean_tweettext(twttext):
     #twttext = twttext.replace('"', '') # no double quotes
     #twttext = re.sub(r"^'|'$|'(?= )|(?<= )'", '', twttext) # no single quotes
     twttext = re.sub(
-        r'^((watch|now) live:|(live |raw )?video:|just in:|developing:|breaking( news)?:|new:|more:|update:|look:)', 
+        r'^((watch|now) live:|(live |raw |ap )?video:|just in:|developing:|breaking( news)?:|new:|more:|update:|look:)', 
         '', 
         twttext, 
         flags=re.I
