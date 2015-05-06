@@ -5,6 +5,7 @@ import pickle
 import gzip
 import csv
 import codecs
+import string
 from collections import Counter
 import nltk
 from nltk.util import ngrams
@@ -13,30 +14,30 @@ import textutils as tu
 
 
 def clean_headline(s):
+    strippunc = ''.join(set(string.punctuation) - {"'", '"', "!", ".", "?"})
     s = tu.asciichars(s)
     s = s.replace('...', '')
-    s = re.sub(r'[-:] ?[\w.]+( [\w.]+){0,2}$', '', s)
-    #s = re.sub(r'(update|wrapup) ?\d* ?[-:] ?', '', s) # possible duplicates?
-    s = re.sub(r' ?(cricket|tennis|soccer|golf) ?-', '', s)
+    s = re.sub(r'[-:] ?[\w]+( [\w]+){0,2}$', '', s)
+    s = re.sub(r'(update|wrapup) ?\d* ?[-:] ?', '', s) # possible duplicates?
+    s = re.sub(r' ?(cricket|tennis|soccer|golf|football|basketball|baseball) ?-', '', s)
     s = re.sub(r' +', ' ', s)
-    # TODO need same dash treatment as tweet processer?
-    # TODO check for % of english words
-    return s.lower().strip()
+    s = s.lower().strip(strippunc + ' ') 
+    return s
 
 
 def isjunk(s):
     if (
-            re.search(r'^[\w.]+( [\w.]+){0,2} ?[-:]', s) or
-            re.search(r'^\([\w.]+( [\w.]+){0,2} ?\)', s) or
-            re.search(r'<(\w+)?(\.\w+)?>', s) or
-            re.search(r'\([\w.]+;[\w.]+\)', s) or
-            re.search(r'-+ ?reuters', s) or
-            re.search(r'^ *[\*-]+', s) or
+            re.search(r'^[\w]+( [\w]+){0,2} ?[-:]', s) or # 1-3 words plus - or : at beginning
+            re.search(r'^\([\w]+( [\w]+){0,2} ?\)', s) or # 1-3 word parenthetical at beginning
+            re.search(r'<(\w+)?(\.\w+)?>', s) or # stock id in tag
+            re.search(r'\([\w]+;[\w]+\)', s) or # stock id in parens
+            re.search(r'-+ ?reuters', s) or # dashes and reuters at beginning
+            re.search(r'^ *[\*-]+', s) or # multiple asterisks or dashes at beginning
             'daily earnings hits' in s or
             'this is a test' in s or
             'please ignore' in s or
             'reuters world news' in s or
-            'reuters sports schedule' in s or
+            'reuters sports features schedule' in s or
             'quote of the day' in s or
             'factors to watch' in s or
             'margin intex for' in s
@@ -77,11 +78,12 @@ def main():
         tags = [token[1] for token in taggedphrase]
         wordset = {token[0] for token in taggedphrase if token[0].isalpha()}
         hasverb = any([tag in verbtags for tag in tags])
+        unknownwords = wordset - english_words
         if (
                 hasverb and 
                 len(tags) >= 8 and 
                 not isjunk(phrase) and
-                len(wordset - english_words) < (len(wordset) / 2)
+                len(unknownwords) < (len(wordset) / 2)
         ):
             tagngrams = list(ngrams(tags, n))
             ngramcounter.update(tagngrams)
