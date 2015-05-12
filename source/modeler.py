@@ -14,7 +14,8 @@ import textutils as tu
 
 
 def clean_headline(s):
-    strippunc = ''.join(set(string.punctuation) - {"'", '"', "!", ".", "?"})
+    # strippunc is result of ''.join(set(string.punctuation) - {"'", '"', "!", ".", "?"})
+    strippunc = '#%$&)(+*-,/;:=<>@[]\\_^`{}|~'
     s = tu.asciichars(s)
     s = s.replace('...', '')
     s = re.sub(r'[-:] ?[\w]+( [\w]+){0,2}$', '', s)
