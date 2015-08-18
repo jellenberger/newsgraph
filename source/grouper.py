@@ -8,7 +8,6 @@ import string
 import textutils as tu
 
 # dev imports
-import random
 from pprint import pprint
 
 
@@ -24,13 +23,13 @@ def clean_tweettext(twttext):
     twttext = twttext.replace('_', ' ') # _ to space
     twttext = twttext.replace('#', '') # no #
     twttext = re.sub(r'-? ?(@|@.)[\w]+[\W]*$', '', twttext, flags =re.I) # no handle at end
-    twttext = twttext.replace('@', '') # no @
-    twttext = twttext.replace('.@', '') # no .@
+    twttext = re.sub(r'.?@[\w]', '', twttext) # remove @ and .@
+    #twttext = twttext.replace('.@', '') # no .@
 
     #twttext = twttext.replace('"', '') # no double quotes
     #twttext = re.sub(r"^'|'$|'(?= )|(?<= )'", '', twttext) # no single quotes
     twttext = re.sub(
-        r'^((watch|now) live:|(live |raw |ap )?video:|just in:|developing:|breaking( news)?:|new:|more:|update:|look:)', 
+        r'^((watch |now )?live:|(live |raw |ap )?video:|just in:|developing:|breaking( news)?:|new:|more:|update:|look:|story:)', 
         '', 
         twttext, 
         flags=re.I
