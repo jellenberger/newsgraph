@@ -95,7 +95,7 @@ def main():
     print(linecount, 'lines processed;', taggedcount, "lines' POS added to model")
     print(len(ngramcounter), 'unique ' + str(n) + '-grams')
     print(ngramcounter.most_common(5))
-    save_counter(ngramcounter, 'data/' + str(n) + 'grammodel.pickle')
+    save_counter(ngramcounter, '../data/' + str(n) + 'grammodel.pickle')
 
 
 if __name__ == "__main__":
