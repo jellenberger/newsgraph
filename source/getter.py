@@ -86,6 +86,7 @@ def parsetweets(rawtweets):
 def getalltweets(sname):
     rawtweets = []
     firstbatch = True
+    maxid = None
     for i in range(20):  # break will probably occur before i == 20
         print('Getting batch', i)
         if firstbatch:
@@ -120,7 +121,6 @@ def getalltweets(sname):
 ## Main ##
 
 def main():
-    alltwts = []
     random.shuffle(news_sources)
     for sname in news_sources:
         print('Getting tweets for', sname)

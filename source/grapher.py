@@ -168,7 +168,7 @@ def graph_taggedphrases(phraselist):
                 else:
                     bestcontextnode = find_contextcandidate(tokenid, phraselist,
                                                             candidatenodes, G)
-                    bestcountnode = find_countcandidate(candidatenodes, G)
+                    #bestcountnode = find_countcandidate(candidatenodes, G)
                     if bestcontextnode is not None:
                         G.assign_wordnode(bestcontextnode, tokenid)
                     else:
