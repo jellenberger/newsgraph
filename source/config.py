@@ -5,4 +5,4 @@ twitter_token = '***REMOVED***'
 twitter_token_secret = '***REMOVED***'
 
 # Database location
-dbfile = 'data/db.sqlite'
+dbfile = '../data/db.sqlite3'
