@@ -62,7 +62,6 @@ def newestsavedtweet(sname):
         return newestid
 
 
-
 ## Tweet Retrieval Functions ##
 
 
@@ -115,7 +114,6 @@ def getalltweets(sname):
             rawtweets.extend(res)
             time.sleep(5) # 5 sec pause keeps us at 180 calls / 15 mins             
     return rawtweets
-
 
 
 ## Main ##

@@ -1,11 +1,9 @@
 import sys
 import re
-import random
 import pickle
 import gzip
 import csv
 import codecs
-import string
 from collections import Counter
 import nltk
 from nltk.util import ngrams
