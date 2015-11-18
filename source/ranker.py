@@ -15,8 +15,8 @@ def get_weightedpaths(G):
         edges = list(zip(nodelist, nodelist[1:]))
         numedges = len(edges)
         pathweight = sum([G.edge[u][v]['weight'] for u, v in edges])
-        pathphrase = [G.node[n]['token'][0] for n in nodelist]
-        weightedpaths.append((pathphrase, pathweight, numedges))
+        pathtokens = [G.node[n]['token'] for n in nodelist]
+        weightedpaths.append((pathtokens, pathweight, numedges))
     return weightedpaths
 
 
@@ -25,21 +25,28 @@ def get_weightedpaths(G):
 def main():
     print('')
 
+    verbs = set(['VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ'])
+
     grpids = grapher.get_tweetgroupids()
     twtgrp = grapher.get_tweetgroup(random.choice(grpids))
     taggedphrases = [grapher.tag_phrase(twt[4].lower()) for twt in twtgrp]
     G = grapher.graph_taggedphrases(taggedphrases)
     G = grapher.weight_edges(G)
-    weightedpaths = get_weightedpaths(G)
-    sortedpaths = sorted(weightedpaths, key=lambda x: (x[1], x[2]))
-    resortedpaths = sorted(sortedpaths[:10], key=lambda x: (x[1]/x[2], x[2]))
+    paths = get_weightedpaths(G)
+    verbed_paths = list(filter(lambda path: any([t[1] in verbs for t in path[0]]), paths))
+    sorted_paths = sorted(verbed_paths[:30], key=lambda x: (x[1], x[2]))
+    resorted_paths = sorted(sorted_paths, key=lambda x: (x[1]/x[2], x[2]))
 
     for phrase in taggedphrases:
-        print(' '.join([w[0] for w in phrase]))
+        print(' '.join([word[0] for word in phrase]))
     print('')
 
-    for path in resortedpaths:
-        print(' '.join(path[0]))
+    for path in sorted_paths:
+        print(' '.join([tok[0] for tok in path[0]]))
+    print('')
+
+    for path in resorted_paths:
+        print(' '.join([tok[0] for tok in path[0]]))
     print('')
 
 
