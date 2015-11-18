@@ -1,9 +1,7 @@
 import sys
 import random
 import networkx as nx
-
 import grapher
-
 
 
 ## Weighting ##
@@ -17,9 +15,9 @@ def get_weightedpaths(G):
         edges = list(zip(nodelist, nodelist[1:]))
         numedges = len(edges)
         pathweight = sum([G.edge[u][v]['weight'] for u, v in edges])
-        pathphrase = ' '.join([G.node[n]['token'][0] for n in nodelist])
+        pathphrase = [G.node[n]['token'][0] for n in nodelist]
         weightedpaths.append((pathphrase, pathweight, numedges))
-    return sorted(weightedpaths, key=lambda x: (x[1], x[2]))
+    return weightedpaths
 
 
 ## Main ##
@@ -41,8 +39,9 @@ def main():
     print('')
 
     for path in resortedpaths:
-        print(path)
+        print(' '.join(path[0]))
     print('')
+
 
 if __name__ == "__main__":
     sys.exit(main())
