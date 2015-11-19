@@ -25,7 +25,7 @@ def get_weightedpaths(G):
 def main():
     print('')
 
-    verbs = set(['VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ'])
+    verbtags = {'VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ'}
 
     grpids = grapher.get_tweetgroupids()
     twtgrp = grapher.get_tweetgroup(random.choice(grpids))
@@ -33,7 +33,7 @@ def main():
     G = grapher.graph_taggedphrases(taggedphrases)
     G = grapher.weight_edges(G)
     paths = get_weightedpaths(G)
-    verbed_paths = list(filter(lambda path: any([t[1] in verbs for t in path[0]]), paths))
+    verbed_paths = list(filter(lambda path: any([t[1] in verbtags for t in path[0]]), paths))
     sorted_paths = sorted(verbed_paths[:30], key=lambda x: (x[1], x[2]))
     resorted_paths = sorted(sorted_paths, key=lambda x: (x[1]/x[2], x[2]))
 
