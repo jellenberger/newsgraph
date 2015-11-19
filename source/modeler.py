@@ -48,7 +48,7 @@ def isjunk(s):
 
 
 def headline_reader():
-    fname = 'data/headlines.csv.gz'
+    fname = '../data/headlines.csv.gz'
     with gzip.open(fname, 'r') as f:
         rdr = csv.reader(codecs.iterdecode(f, 'latin-1'))
         for line in rdr:
