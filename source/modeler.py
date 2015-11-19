@@ -13,7 +13,7 @@ import textutils as tu
 
 def clean_headline(s):
     # strippunc is result of ''.join(set(string.punctuation) - {"'", '"', "!", ".", "?"})
-    strippunc = '#%$&)(+*-,/;:=<>@[]\\_^`{}|~'
+    strippunc = '#)(+*-,/=<>@[]\\_^`{}|~'
     s = tu.asciichars(s)
     s = s.replace('...', '')
     s = re.sub(r'[-:] ?[\w]+( [\w]+){0,2}$', '', s)
@@ -105,4 +105,5 @@ if __name__ == "__main__":
 english_vocab = set(w.lower() for w in nltk.corpus.words.words())
 text_vocab = set(w.lower() for w in text if w.lower().isalpha())
 unusual = text_vocab.difference(english_vocab) 
+''.join(set(string.punctuation) - {"'", '"', "!", ".", "?"}
 '''
