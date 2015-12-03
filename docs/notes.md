@@ -1,18 +1,23 @@
-## Notes for Pisgah ##
+# Notes for Pisgah #
 
 ## Tweet Processing ##
-- omit quotes?
+- decrease cleanup modifications
+- what to do with urls and hastags?
+
+## Grouping
 - eliminate duplicates within match group
-- put back hypenated words?
+- process chronologically (look for groups in newer material)
+- duplicate detection doesn't seem to be working - is it applied after cleanup?
+- detect duplicate word roots and eliminate?
 
 ## Graphing
 - require punct, possessives and contraction verbs to follow same word?
 - save graph objects to db
+- move to pydot
 
 ## Weighting and Ranking
 - use edge count in weighting?
 - determine how, when  to normalize weighting for paths from start and end
 
 ## Grammaticality
-- data for n-grams: it data needs language detection
-- implement n-gram frequency for model
+- n-gram models should include beginning and end
