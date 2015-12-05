@@ -72,7 +72,7 @@ def find_similartweets(reftwt, twtlist):
         simtwts_snames = [st[1] for st in simtwts]
         if  (time_diff <= 86400 and twt[1] not in simtwts_snames):
             ratio = fuzz.token_sort_ratio(reftwt[3], twt[3])
-            if ratio >= 70 and ratio < 90:
+            if ratio >= 75 and ratio < 90:
                 simtwts.append(twt)
     return simtwts
 
