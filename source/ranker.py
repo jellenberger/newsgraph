@@ -4,13 +4,14 @@ import pickle
 import networkx as nx
 import grapher
 from nltk.util import ngrams
+import math
 
 
 ## Weighting ##
 
 def get_weightedpaths(G):
-    startnode = grapher.find_nodeswithtoken(('START', 'DELIM'), G)[0]
-    endnode = grapher.find_nodeswithtoken(('END', 'DELIM'), G)[0]
+    startnode = grapher.find_nodeswithtoken(('START', 'START'), G)[0]
+    endnode = grapher.find_nodeswithtoken(('END', 'END'), G)[0]
     nodepaths = nx.all_simple_paths(G, startnode, endnode)
     weightedpaths = []
     for nodelist in nodepaths:
@@ -46,15 +47,15 @@ def main():
         print(' '.join([word[0] for word in phrase]))
     print('')
 
-    # for path in sorted_paths[:2]:
-    #     print(' '.join([tok[0] for tok in path[0]]))
-    # print('')
+    for path in sorted_paths[:2]:
+        print(' '.join([tok[0] for tok in path[0]]))
+    print('')
 
-    # for path in resorted_paths[:2]:
-    #     print(' '.join([tok[0] for tok in path[0]]))
-    # print('')
+    for path in resorted_paths[:2]:
+        print(' '.join([tok[0] for tok in path[0]]))
+    print('')
 
-    for path in resorted_paths[:5]:
+    for path in sorted_paths[:10]:
         words = [tok[0] for tok in path[0]]
         del words[0]
         del words[-1]
@@ -62,7 +63,7 @@ def main():
         del pos_tags[0]
         del pos_tags[-1]
         tag_ngrams = list(ngrams(pos_tags, 4))
-        g_model_score = sum([g_model[ngram] for ngram in tag_ngrams]) / len(tag_ngrams)
+        g_model_score = math.log(sum([g_model[ngram] for ngram in tag_ngrams]) / len(tag_ngrams))
         phrase = ' '.join(words)
         print(g_model_score, ' ', phrase)
 
