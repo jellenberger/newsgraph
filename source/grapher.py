@@ -131,8 +131,8 @@ def graph_taggedphrases(phraselist):
     for i, phrase in enumerate(phraselist):
         G.start_newphrase()
         isfirstphrase = (i == 0)
-        phrase.insert(0, ('START', 'DELIM'))
-        phrase.append(('END', 'DELIM'))
+        phrase.insert(0, ('START', 'START'))
+        phrase.append(('END', 'END'))
 
         print(' '.join([t[0] for t in phrase]))
 
